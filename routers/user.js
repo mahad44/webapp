@@ -191,6 +191,37 @@ router.post('/addproduct', async (req,res,next) =>{
   }
 })
 
+router.put('/editproduct', async (req,res,next)=> {
+  try{
+    const productid = req.body.productid;
+    const productedit = await Products.findById(productid).select('-passwordhash');
 
+    if(productedit){
+      productedit.category = req.body.category || productedit.category;
+      productedit.nameofProduct = req.body.nameofProduct || productedit.nameofProduct;
+      productedit.price = req.body.price || productedit.price;
+      productedit.productimage = req.body.productImage || productedit.productimage;
+    }
+    else{
+      return res.status(400).json({
+        message : "Product not found with this product id"
+      })
+    }
+    const updatedProduct = await productedit.save();
+    if(updatedProduct){
+      return res.status(200).json({
+        updatedProduct,
+        message : "Product updated successfully"
+      })
+    } else {
+      return res.status(400).json({
+        message : "Product can not be updated"
+      })
+    }
+  }
+  catch(err){
+    return next (err);
+  }
+})
 
 module.exports = router;
