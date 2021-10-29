@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const { User } = require("../models/user");
+const { User, Products } = require("../models/user");
 const router = express.Router();
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
@@ -58,7 +58,7 @@ router.post("/login", async (req, res, next) => {
   });
 
   const user = await User.findOne({ email: credentials.email });
-
+  
   if (!user) {
       return res
           .status(500)
@@ -109,5 +109,88 @@ router.get('/', async (req, res) => {
         })
     }
 })
+
+router.get('/myproducts', async (req,res) =>{
+  const userid = req.body.userid;
+  console.log(userid);
+  const userfind = await User.findById(userid).select('-passwordhash');
+
+  if(userfind){
+    //const tokenid = jwt.sign({ id: userfind.id, isAdmin: userfind.isAdmin }, "JWTSECRET", {
+     // expiresIn: "1d",})
+      const tokenid = jwt.verify(req.body.token,"JWTSECRET");
+    if(tokenid){
+      const listofproducts = await Products.findOne({Id : userid});
+      if(listofproducts){
+        return res.status(200).json({
+          listofproducts,
+          message: "Product list returned"
+        })
+      }
+      else{
+        return res.status(400).json({
+          listofproducts,
+          message : "No products found for the user"
+        })
+      }
+    }
+    else{
+      return res.status(400).json({
+        message : "Token not recognized"
+      })
+    }
+  }
+  else{
+    return res.status(400).json({
+      userfind,
+      message : "User can not be retreived"
+    })
+  }
+})
+
+router.post('/addproduct', async (req,res,next) =>{
+  try{
+    const tempuserid = req.body.userid;
+    const finduser = await User.findById(tempuserid).select('-passwordhash');
+
+    if(finduser){
+      const tokenid = jwt.verify(req.body.token,"JWTSECRET");
+      if(tokenid){
+        let product = new Products({
+          userid : tempuserid,
+          productname : req.body.nameofProduct,
+          productimage : req.body.productImage,
+          category : req.body.category,
+          price : req.body.price
+        });
+        product = await product.save();
+
+        let findproduct = Products.findOne(tempuserid);
+        const idreturn = findproduct.id;
+        if(product){
+          return res.status(200).json({
+            idreturn,
+            message : "Product added successfully"
+          })
+        }
+        else{
+          return res.status(400).json({
+            idreturn,
+            message : "Product was not added"
+          })
+        }
+      }
+    }
+    else{
+      return res.status(400).json({
+        message: "Not user exists with this user id"
+      })
+    }
+  } catch(err){
+    return next(err);
+  }
+})
+
+
 
 module.exports = router;

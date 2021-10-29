@@ -2,7 +2,7 @@ const mongoose = require('mongoose'),
 
 connectDB= async() =>{
 try{
-    const conn= await mongoose.connect("mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false",{
+    const conn= await mongoose.connect("mongodb://localhost:27017",{
         useNewUrlParser:true,
         useUnifiedTopology:true,
         dbName: "mydb"
