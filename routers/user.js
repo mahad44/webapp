@@ -6,6 +6,7 @@ const Joi = require("joi");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
+const e = require("express");
 
 //register
 router.post("/register", async (req, res, next) => {
@@ -197,10 +198,18 @@ router.put('/editproduct', async (req,res,next)=> {
     const productedit = await Products.findById(productid).select('-passwordhash');
 
     if(productedit){
+      const tokenid = jwt.verify(req.body.token,"JWTSECRET");
+      if(tokenid){
       productedit.category = req.body.category || productedit.category;
       productedit.nameofProduct = req.body.nameofProduct || productedit.nameofProduct;
       productedit.price = req.body.price || productedit.price;
       productedit.productimage = req.body.productImage || productedit.productimage;
+      }
+      else{
+        return res.status(400).json({
+          message : "Token not recognized"
+        })
+      }
     }
     else{
       return res.status(400).json({
@@ -221,6 +230,29 @@ router.put('/editproduct', async (req,res,next)=> {
   }
   catch(err){
     return next (err);
+  }
+})
+
+router.delete('/deleteproduct',async(req,res)=>{
+  const productid = req.body.productid;
+  const tokenid = jwt.verify(req.body.token,"JWTSECRET");
+
+  if(tokenid){
+    const foundProduct = await Products.findByIdAndDelete(productid);
+    if(foundProduct){
+      return res.status(200).json({
+        message : "Product has been deleted"
+      })
+    }
+    else{
+      return res.status(400).json({
+        message : "Product not found"
+      })
+    }
+  }else{
+    return res.status(400).json({
+      message : "Token not recognized"
+    })
   }
 })
 
