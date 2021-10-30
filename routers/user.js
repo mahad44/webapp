@@ -1,12 +1,15 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const { User, Products, Reviews } = require("../models/user");
-const checkAuth = require("../_middleware/check-auth");
+const { User} = require("../models/user"); 
+const { Products} = require("../models/products"); 
+const { Reviews} = require("../models/reviews"); 
+const { Feed} = require("../models/feed");
+const checkAuth  = require("../_middleware/check-auth");
 const router = express.Router();
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { body, validationResult, check, Result } = require("express-validator");
+const { body, validationResult } = require("express-validator");
 const e = require("express");
 
 //register
@@ -60,7 +63,7 @@ router.post("/login", async (req, res, next) => {
   });
 
   const user = await User.findOne({ email: credentials.email });
-  
+
   if (!user) {
       return res
           .status(500)
@@ -95,8 +98,61 @@ router.post("/login", async (req, res, next) => {
 
 });
 
+//get user by id
+router.get('/getuser/:id',checkAuth,async(req,res) => {
+  foundUser=await User.findById(req.params.id).select('-passwordhash');
+
+  if(foundUser){
+    return res.status(200).json({
+      foundUser,
+      message:"user retrieved successfully"
+    })
+  }
+  else{
+    res.status(400).json({
+      message:"User could not be retrieved successfully"
+    })
+  }
+
+})
+
+//updateuser
+router.put('/updateprofile/:id',checkAuth, async(req,res,next)=>{
+  const foundUser=await User.findById(req.params.id);
+
+  if(foundUser){
+    foundUser.name=req.body.name||foundUser.name;
+    foundUser.email=req.body.email||foundUser.email;
+    foundUser.dateofBirth=req.body.dateofBirth||foundUser.dateofBirth;
+    foundUser.gender=req.body.gender||foundUser.gender;
+    foundUser.Image=req.body.Image||foundUser.Image;
+    if(req.body.password){
+      foundUser.passwordhash = bcrypt.hashSync(req.body.password, 10);
+    }
+  }
+  else{
+    return res.status(404).json({
+      message:"User not found"
+    })
+  }
+
+  const updatedUser=await foundUser.save();
+
+  if(updatedUser){
+    return res.status(200).json({
+      message:"user updated successfully"
+    })
+  }
+  else{
+    return res.status(400).json({
+      message:"User could not be updated sucessfully"
+    })
+  }
+})
+
+
 //get all users
-router.get('/', async (req, res) => {
+router.get('/', checkAuth, async (req, res) => {
     const userList = await User.find({}).select('-passwordHash');
 
     if (userList) {
@@ -111,6 +167,24 @@ router.get('/', async (req, res) => {
         })
     }
 })
+
+
+//deleteuser
+router.delete('/deleteuser/:id',checkAuth, async(req,res)=>{
+  const deleteUser=await User.findByIdAndDelete(req.params.id);
+
+  if(deleteUser){
+    return res.status(200).json({
+      message:"user deleted successfully"
+    })
+  }
+  else{
+    return res.status(400).json({
+      message:"User could not be deleted successfully"
+    })
+  }
+})
+
 
 router.get('/myproducts',checkAuth, async (req,res) =>{
   const userid = req.body.userid;
@@ -178,7 +252,7 @@ router.put('/editproduct', checkAuth, async (req,res,next)=> {
 
     if(productedit){
       productedit.category = req.body.category || productedit.category;
-      productedit.nameofProduct = req.body.nameofProduct || productedit.nameofProduct;
+      productedit.productname = req.body.nameofProduct || productedit.productname;
       productedit.price = req.body.price || productedit.price;
       productedit.productimage = req.body.productImage || productedit.productimage;
     }
@@ -267,6 +341,123 @@ router.get('/getreview',checkAuth,async(req,res)=>{
   }else{
     return res.status(400).json({
       message : "No review exists with this id"
+    })
+  }
+})
+
+
+
+
+//upload feed
+router.post("/uploadfeed",checkAuth, async (req,res,next) =>{
+  try{
+    const errors=validationResult(req);
+
+    if (!errors.isEmpty()) {
+      res.status(422).json({ errors: errors.array() });
+      return;
+  }
+
+  let newFeed = new Feed({
+      userid: req.body.userid,
+      text: req.body.text,
+      feedImage: req.body.feed,
+  });
+
+  newFeed = await newFeed.save();
+
+  if (!newFeed) {
+      return res
+          .status(400)
+          .json("Feed cannot be uploaded!");
+  } else {
+      return res
+          .status(201)
+          .json("Feed Uploaded Successfully");
+  }
+} catch (err) {
+  return next(err);
+}
+}
+);
+
+
+//update feed
+router.put('/updatefeed/:id', checkAuth,async(req,res)=>{
+  const foundFeed= await Feed.findById(req.params.id);
+
+  if(foundFeed){
+    foundFeed.text=req.body.text || foundFeed.userid;
+    foundFeed.feedImage= req.body.feedImage || foundFeed.feedImage;
+  }
+  else{
+    return res.status(404).json({
+      message:"Feed not found"
+    })
+  }
+
+  const updatedFeed= await foundFeed.save();
+  if(updatedFeed){
+    return res.status(200).json({
+      message:"feed updated successfully"
+    })
+  }
+  else{
+    return res.status(400).json({
+     message:"Feed could not be updated successfully" 
+    })
+  }
+})
+
+//delete feed
+router.delete('/deletefeed/:id',checkAuth, async(req,res,next)=>{
+  const deleteFeed=await Feed.findByIdAndDelete(req.params.id);
+
+
+  if (deleteFeed){
+    return res.status(200).json({
+      message:"feed deleted successfully"
+    })
+  }
+
+  else{
+    return res.status(400).json({
+      message:"Cannot delete feed"
+    }) 
+  }
+})
+
+//get feed by id
+router.get("/feed/:id",checkAuth,async (req,res)=>{
+  const feed=await Feed.findById(req.params.id)
+
+  if(feed){
+    res.status(200).json({
+      feed,
+      message:"feed retrieved succesfully for user"
+    })
+  }
+  else{
+    res.status(400).json({
+      message:"could not retrieve feed successfully for user"
+    })
+  }
+})
+
+
+//get feed by user
+router.get("/myfeeds/:id",checkAuth,async (req,res)=>{
+  const feed=await Feed.find({userid:req.params.id})
+
+  if(feed){
+    res.status(200).json({
+      feed,
+      message:"feeds retrieved succesfully for user"
+    })
+  }
+  else{
+    res.status(400).json({
+      message:"could not retrieve feeds successfully for user"
     })
   }
 })
