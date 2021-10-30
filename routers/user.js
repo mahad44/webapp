@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const { User, Products } = require("../models/user");
+const checkAuth = require("../_middleware/check-auth");
 const router = express.Router();
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { body, validationResult } = require("express-validator");
+const { body, validationResult, check } = require("express-validator");
 const e = require("express");
 
 //register
@@ -111,16 +112,12 @@ router.get('/', async (req, res) => {
     }
 })
 
-router.get('/myproducts', async (req,res) =>{
+router.get('/myproducts',checkAuth, async (req,res) =>{
   const userid = req.body.userid;
   console.log(userid);
   const userfind = await User.findById(userid).select('-passwordhash');
 
   if(userfind){
-    //const tokenid = jwt.sign({ id: userfind.id, isAdmin: userfind.isAdmin }, "JWTSECRET", {
-     // expiresIn: "1d",})
-      const tokenid = jwt.verify(req.body.token,"JWTSECRET");
-    if(tokenid){
       const listofproducts = await Products.findOne({Id : userid});
       if(listofproducts){
         return res.status(200).json({
@@ -134,12 +131,6 @@ router.get('/myproducts', async (req,res) =>{
           message : "No products found for the user"
         })
       }
-    }
-    else{
-      return res.status(400).json({
-        message : "Token not recognized"
-      })
-    }
   }
   else{
     return res.status(400).json({
@@ -149,13 +140,10 @@ router.get('/myproducts', async (req,res) =>{
   }
 })
 
-router.post('/addproduct', async (req,res,next) =>{
+router.post('/addproduct',checkAuth, async (req,res,next) =>{
   try{
     const tempuserid = req.body.userid;
     const finduser = await User.findById(tempuserid).select('-passwordhash');
-
-    if(finduser){
-      const tokenid = jwt.verify(req.body.token,"JWTSECRET");
       if(tokenid){
         let product = new Products({
           userid : tempuserid,
@@ -180,7 +168,6 @@ router.post('/addproduct', async (req,res,next) =>{
             message : "Product was not added"
           })
         }
-      }
     }
     else{
       return res.status(400).json({
@@ -192,24 +179,16 @@ router.post('/addproduct', async (req,res,next) =>{
   }
 })
 
-router.put('/editproduct', async (req,res,next)=> {
+router.put('/editproduct', checkAuth, async (req,res,next)=> {
   try{
     const productid = req.body.productid;
     const productedit = await Products.findById(productid).select('-passwordhash');
 
     if(productedit){
-      const tokenid = jwt.verify(req.body.token,"JWTSECRET");
-      if(tokenid){
       productedit.category = req.body.category || productedit.category;
       productedit.nameofProduct = req.body.nameofProduct || productedit.nameofProduct;
       productedit.price = req.body.price || productedit.price;
       productedit.productimage = req.body.productImage || productedit.productimage;
-      }
-      else{
-        return res.status(400).json({
-          message : "Token not recognized"
-        })
-      }
     }
     else{
       return res.status(400).json({
@@ -233,11 +212,8 @@ router.put('/editproduct', async (req,res,next)=> {
   }
 })
 
-router.delete('/deleteproduct',async(req,res)=>{
+router.delete('/deleteproduct',checkAuth, async(req,res)=>{
   const productid = req.body.productid;
-  const tokenid = jwt.verify(req.body.token,"JWTSECRET");
-
-  if(tokenid){
     const foundProduct = await Products.findByIdAndDelete(productid);
     if(foundProduct){
       return res.status(200).json({
@@ -249,10 +225,14 @@ router.delete('/deleteproduct',async(req,res)=>{
         message : "Product not found"
       })
     }
-  }else{
-    return res.status(400).json({
-      message : "Token not recognized"
-    })
+})
+
+router.post('/reviews',checkAuth, async(req,res,next)=>{
+  try{
+
+  }
+  catch(err){
+    return next(err)
   }
 })
 
