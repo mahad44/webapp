@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const { User, Products } = require("../models/user");
+const { User, Products, Reviews } = require("../models/user");
 const checkAuth = require("../_middleware/check-auth");
 const router = express.Router();
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { body, validationResult, check } = require("express-validator");
+const { body, validationResult, check, Result } = require("express-validator");
 const e = require("express");
 
 //register
@@ -144,7 +144,6 @@ router.post('/addproduct',checkAuth, async (req,res,next) =>{
   try{
     const tempuserid = req.body.userid;
     const finduser = await User.findById(tempuserid).select('-passwordhash');
-      if(tokenid){
         let product = new Products({
           userid : tempuserid,
           productname : req.body.nameofProduct,
@@ -154,7 +153,7 @@ router.post('/addproduct',checkAuth, async (req,res,next) =>{
         });
         product = await product.save();
 
-        let findproduct = Products.findOne(tempuserid);
+        let findproduct = Products.findOne({id:tempuserid});
         const idreturn = findproduct.id;
         if(product){
           return res.status(200).json({
@@ -168,13 +167,8 @@ router.post('/addproduct',checkAuth, async (req,res,next) =>{
             message : "Product was not added"
           })
         }
-    }
-    else{
-      return res.status(400).json({
-        message: "Not user exists with this user id"
-      })
-    }
-  } catch(err){
+  }
+   catch(err){
     return next(err);
   }
 })
@@ -227,12 +221,57 @@ router.delete('/deleteproduct',checkAuth, async(req,res)=>{
     }
 })
 
-router.post('/reviews',checkAuth, async(req,res,next)=>{
+router.post('/addreview',checkAuth, async(req,res,next)=>{
   try{
+    const tempid = req.body.userid;
+    const findUser = await User.findById(tempid).select('-passwordhash');
 
+    if(findUser){
+      let newReview = new Reviews({
+        feedid: req.body.feedid,
+        userid: tempid,
+        comments: req.body.comments,
+        ratings: req.body.ratings
+      });
+      newReview = await newReview.save();
+
+      const tempreviewid = Reviews.findOne({id:tempid});
+      const idreturn = tempreviewid.id;
+      if(newReview){
+        return res.status(200).json({
+          idreturn,
+          message : "Review was added"
+        })
+      }else{
+        return res.status(400).json({
+          message : "Review was not added"
+        })
+      }
+    }
+    else{
+      return res.status(400).json({
+        message : "No user exists with this id"
+      })
+    }
   }
   catch(err){
     return next(err)
+  }
+})
+
+router.get('/getreview',checkAuth,async(req,res)=>{
+  const tempid = req.body.reviewid;
+  const review = await Reviews.findById(tempid);
+
+  if(review){
+    return res.status(200).json({
+      review,
+      message : "Review returned successfully"
+    })
+  }else{
+    return res.status(400).json({
+      message : "No review exists with this id"
+    })
   }
 })
 
