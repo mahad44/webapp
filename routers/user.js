@@ -152,9 +152,7 @@ router.post('/addproduct',checkAuth, async (req,res,next) =>{
           price : req.body.price
         });
         product = await product.save();
-
-        let findproduct = Products.findOne({id:tempuserid});
-        const idreturn = findproduct.id;
+        const idreturn = product._id;
         if(product){
           return res.status(200).json({
             idreturn,
@@ -234,9 +232,7 @@ router.post('/addreview',checkAuth, async(req,res,next)=>{
         ratings: req.body.ratings
       });
       newReview = await newReview.save();
-
-      const tempreviewid = Reviews.findOne({id:tempid});
-      const idreturn = tempreviewid.id;
+      const idreturn = newReview._id;
       if(newReview){
         return res.status(200).json({
           idreturn,
