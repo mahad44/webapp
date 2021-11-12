@@ -186,8 +186,8 @@ router.delete('/deleteuser/:id',checkAuth, async(req,res)=>{
 })
 
 
-router.get('/myproducts',checkAuth, async (req,res) =>{
-  const userid = req.body.userid;
+router.get('/myproducts/:id',checkAuth, async (req,res) =>{
+  const userid = req.params.id;
   console.log(userid);
   const userfind = await User.findById(userid).select('-passwordhash');
 
@@ -214,9 +214,9 @@ router.get('/myproducts',checkAuth, async (req,res) =>{
   }
 })
 
-router.post('/addproduct',checkAuth, async (req,res,next) =>{
+router.post('/addproduct/:id',checkAuth, async (req,res,next) =>{
   try{
-    const tempuserid = req.body.userid;
+    const tempuserid = req.params.id;
     const finduser = await User.findById(tempuserid).select('-passwordhash');
         let product = new Products({
           userid : tempuserid,
@@ -245,9 +245,9 @@ router.post('/addproduct',checkAuth, async (req,res,next) =>{
   }
 })
 
-router.put('/editproduct', checkAuth, async (req,res,next)=> {
+router.put('/editproduct/:id', checkAuth, async (req,res,next)=> {
   try{
-    const productid = req.body.productid;
+    const productid = req.params.id;
     const productedit = await Products.findById(productid).select('-passwordhash');
 
     if(productedit){
@@ -278,8 +278,8 @@ router.put('/editproduct', checkAuth, async (req,res,next)=> {
   }
 })
 
-router.delete('/deleteproduct',checkAuth, async(req,res)=>{
-  const productid = req.body.productid;
+router.delete('/deleteproduct/:id',checkAuth, async(req,res)=>{
+  const productid = req.params.id;
     const foundProduct = await Products.findByIdAndDelete(productid);
     if(foundProduct){
       return res.status(200).json({
@@ -293,9 +293,9 @@ router.delete('/deleteproduct',checkAuth, async(req,res)=>{
     }
 })
 
-router.post('/addreview',checkAuth, async(req,res,next)=>{
+router.post('/addreview/:id',checkAuth, async(req,res,next)=>{
   try{
-    const tempid = req.body.userid;
+    const tempid = req.params.id;
     const findUser = await User.findById(tempid).select('-passwordhash');
 
     if(findUser){
@@ -329,8 +329,8 @@ router.post('/addreview',checkAuth, async(req,res,next)=>{
   }
 })
 
-router.get('/getreview',checkAuth,async(req,res)=>{
-  const tempid = req.body.reviewid;
+router.get('/getreview/:id',checkAuth,async(req,res)=>{
+  const tempid = req.params.id;
   const review = await Reviews.findById(tempid);
 
   if(review){
